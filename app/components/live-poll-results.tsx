@@ -13,7 +13,7 @@ const POLL_INTERVAL_MS = 5000;
  * - 투표가 마감되면 멈추고 화면 전체를 새로 그려 상태 배지를 "마감"으로 바꾼다.
  * - 결과를 더 볼 수 없게 되면(403, 404: 삭제 등) 멈추고 화면을 새로 그린다.
  */
-export function LivePollResults({ pollId, initial }: { pollId: string; initial: PollResults }) {
+export function useLivePollResults(pollId: string, initial: PollResults): PollResults {
   const [results, setResults] = useState(initial);
   const router = useRouter();
 
@@ -77,5 +77,9 @@ export function LivePollResults({ pollId, initial }: { pollId: string; initial: 
     if (initial.status === "open" && results.status === "closed") router.refresh();
   }, [initial.status, results.status, router]);
 
-  return <PollResultsView results={results} />;
+  return results;
+}
+
+export function LivePollResults({ pollId, initial }: { pollId: string; initial: PollResults }) {
+  return <PollResultsView results={useLivePollResults(pollId, initial)} />;
 }

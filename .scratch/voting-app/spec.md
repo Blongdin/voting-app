@@ -1,6 +1,6 @@
 # 투표 앱 v1
 
-Status: ready-for-agent
+Status: done
 
 용어는 루트의 `CONTEXT.md`를 따르고, 설계 근거는 ADR-0001~0004(`docs/adr/`)에 있다.
 

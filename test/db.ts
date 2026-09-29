@@ -7,6 +7,15 @@ export async function resetDb() {
   await sql()`TRUNCATE polls, options, votes CASCADE`;
 }
 
+/** 투표에 딸린 선택지와 표가 DB에 몇 행 남았는지. 연쇄 삭제는 공개 인터페이스로 볼 수 없어 직접 센다. */
+export async function rowsBelongingTo(pollId: string) {
+  const [row] = await sql()`
+    SELECT
+      (SELECT count(*)::int FROM options WHERE poll_id = ${pollId}) AS options,
+      (SELECT count(*)::int FROM votes WHERE poll_id = ${pollId}) AS votes`;
+  return { options: row.options as number, votes: row.votes as number };
+}
+
 /** 운영자가 만든 진행 중 투표를 공개 인터페이스로 준비한다. */
 export async function createOpenPoll(
   optionLabels: string[] = ["김밥", "라면"],

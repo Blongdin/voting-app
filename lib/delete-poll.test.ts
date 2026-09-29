@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createOpenPoll, resetDb } from "@/test/db";
+import { createOpenPoll, resetDb, rowsBelongingTo } from "@/test/db";
 import { castVote, deletePoll, getPoll, getResults, listPolls, type Actor } from "@/lib/polls";
 
 beforeEach(resetDb);
@@ -19,6 +19,17 @@ describe("투표 삭제", () => {
     expect(await getPoll(poll.id)).toBeNull();
     expect(await getResults(poll.id, admin)).toEqual({ ok: false, reason: "not_found" });
     expect(await castVote(poll.id, poll.options[0].id, randomUUID())).toBe("not_found");
+  });
+
+  it("선택지와 표는 DB의 연쇄 삭제로 함께 지워진다", async () => {
+    const poll = await createOpenPoll();
+    await castVote(poll.id, poll.options[0].id, randomUUID());
+    await castVote(poll.id, poll.options[1].id, randomUUID());
+    expect(await rowsBelongingTo(poll.id)).toEqual({ options: 2, votes: 2 });
+
+    await deletePoll(admin, poll.id);
+
+    expect(await rowsBelongingTo(poll.id)).toEqual({ options: 0, votes: 0 });
   });
 
   it("운영자가 아니면 삭제할 수 없고 투표는 그대로 남는다", async () => {

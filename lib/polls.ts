@@ -99,10 +99,11 @@ export async function getPoll(pollId: string): Promise<Poll | null> {
   };
 }
 
-export type ClosePollResult = { ok: true } | { ok: false; reason: "forbidden" | "not_found" };
+/** 운영자가 투표 하나를 바꾸는 일(마감, 삭제)의 결과. */
+export type AdminPollChangeResult = { ok: true } | { ok: false; reason: "forbidden" | "not_found" };
 
 /** 투표를 마감한다. 되돌릴 수 없고, 이미 마감된 투표는 그대로 둔다(처음 마감한 시각 유지). */
-export async function closePoll(actor: Actor, pollId: string): Promise<ClosePollResult> {
+export async function closePoll(actor: Actor, pollId: string): Promise<AdminPollChangeResult> {
   if (!actor.isAdmin) return { ok: false, reason: "forbidden" };
   if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
   const [poll] = await sql()`
@@ -112,10 +113,8 @@ export async function closePoll(actor: Actor, pollId: string): Promise<ClosePoll
   return poll ? { ok: true } : { ok: false, reason: "not_found" };
 }
 
-export type DeletePollResult = { ok: true } | { ok: false; reason: "forbidden" | "not_found" };
-
 /** 투표를 완전히 삭제한다. 선택지와 표는 DB의 연쇄 삭제(ON DELETE CASCADE)로 함께 지워진다. */
-export async function deletePoll(actor: Actor, pollId: string): Promise<DeletePollResult> {
+export async function deletePoll(actor: Actor, pollId: string): Promise<AdminPollChangeResult> {
   if (!actor.isAdmin) return { ok: false, reason: "forbidden" };
   if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
   const [poll] = await sql()`DELETE FROM polls WHERE id = ${pollId} RETURNING id`;
