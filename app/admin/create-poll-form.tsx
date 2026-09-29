@@ -76,7 +76,6 @@ function PollFields({
           id="question"
           name="question"
           required
-          maxLength={QUESTION_MAX_LENGTH}
           defaultValue={state.values?.question}
           className={inputClass}
         />
@@ -96,7 +95,6 @@ function PollFields({
             <input
               name="option"
               required
-              maxLength={OPTION_MAX_LENGTH}
               defaultValue={state.values?.options[index]}
               aria-label={`선택지 ${index + 1}`}
               className={inputClass}
@@ -140,11 +138,16 @@ function PollFields({
 
 function CreatedPollNotice({ pollId }: { pollId: string }) {
   const path = `/polls/${pollId}`;
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
 
   const copy = async () => {
-    await navigator.clipboard.writeText(new URL(path, window.location.origin).toString());
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(new URL(path, window.location.origin).toString());
+      setCopyState("copied");
+    } catch {
+      // http 등 클립보드를 쓸 수 없는 환경. 링크는 화면에 그대로 보인다.
+      setCopyState("failed");
+    }
   };
 
   return (
@@ -157,7 +160,7 @@ function CreatedPollNotice({ pollId }: { pollId: string }) {
         {path}
       </Link>
       <button type="button" onClick={copy} className="underline">
-        {copied ? "복사됨" : "링크 복사"}
+        {copyState === "copied" ? "복사됨" : copyState === "failed" ? "복사할 수 없음" : "링크 복사"}
       </button>
     </div>
   );

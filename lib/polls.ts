@@ -29,16 +29,19 @@ export type CreatePollResult =
   | { ok: false; reason: "forbidden" }
   | { ok: false; reason: "invalid"; errors: PollInputErrors };
 
+// DB의 char_length처럼 코드 포인트 단위로 센다(JS의 .length는 이모지를 2로 센다).
+const charLength = (text: string) => [...text].length;
+
 function questionError(question: string): QuestionError | undefined {
-  if (question.length === 0) return "required";
-  if (question.length > QUESTION_MAX_LENGTH) return "too_long";
+  if (charLength(question) === 0) return "required";
+  if (charLength(question) > QUESTION_MAX_LENGTH) return "too_long";
 }
 
 function optionsError(labels: string[]): OptionsError | undefined {
   if (labels.length < MIN_OPTIONS) return "too_few";
   if (labels.length > MAX_OPTIONS) return "too_many";
-  if (labels.some((label) => label.length === 0)) return "empty";
-  if (labels.some((label) => label.length > OPTION_MAX_LENGTH)) return "too_long";
+  if (labels.some((label) => charLength(label) === 0)) return "empty";
+  if (labels.some((label) => charLength(label) > OPTION_MAX_LENGTH)) return "too_long";
   // 공백을 지운 뒤 대소문자를 구분해 비교한다.
   if (new Set(labels).size !== labels.length) return "duplicate";
 }
@@ -52,19 +55,21 @@ export async function createPoll(
 
   const question = rawQuestion.trim();
   const optionLabels = rawOptionLabels.map((label) => label.trim());
-  const errors: PollInputErrors = {};
-  const qError = questionError(question);
-  const oError = optionsError(optionLabels);
-  if (qError) errors.question = qError;
-  if (oError) errors.options = oError;
-  if (qError || oError) return { ok: false, reason: "invalid", errors };
+  const questionProblem = questionError(question);
+  const optionsProblem = optionsError(optionLabels);
+  if (questionProblem || optionsProblem) {
+    const errors: PollInputErrors = {};
+    if (questionProblem) errors.question = questionProblem;
+    if (optionsProblem) errors.options = optionsProblem;
+    return { ok: false, reason: "invalid", errors };
+  }
 
-  const q = sql();
+  const db = sql();
   const pollId = randomUUID();
   // 투표와 선택지를 한 트랜잭션으로 만든다.
-  await q.transaction([
-    q`INSERT INTO polls (id, question) VALUES (${pollId}, ${question})`,
-    q`INSERT INTO options (poll_id, label, position)
+  await db.transaction([
+    db`INSERT INTO polls (id, question) VALUES (${pollId}, ${question})`,
+    db`INSERT INTO options (poll_id, label, position)
       SELECT ${pollId}, label, ordinality - 1
       FROM unnest(${optionLabels}::text[]) WITH ORDINALITY AS t(label, ordinality)`,
   ]);
@@ -76,11 +81,11 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function getPoll(pollId: string): Promise<Poll | null> {
   // URL에서 온 값이므로 UUID가 아니면 DB에 묻지 않고 없음으로 본다.
   if (!UUID.test(pollId)) return null;
-  const q = sql();
-  const [poll] = await q`
+  const db = sql();
+  const [poll] = await db`
     SELECT id, question, closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
   if (!poll) return null;
-  const options = await q`
+  const options = await db`
     SELECT id, label FROM options WHERE poll_id = ${pollId} ORDER BY position`;
   return {
     id: poll.id,

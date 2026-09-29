@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminAuth } from "@/lib/admin-auth";
+import type { Actor } from "@/lib/polls";
 
 // 운영자 세션 쿠키를 읽고 쓰는 연결 코드. 판단은 lib/admin-auth.ts가 한다.
 
@@ -42,6 +43,7 @@ export async function isAdmin(): Promise<boolean> {
 }
 
 /** 운영자가 아니면 로그인 화면으로 보낸다. 운영자 페이지와 Server Action마다 호출한다. */
-export async function requireAdmin() {
+export async function requireAdmin(): Promise<Actor> {
   if (!(await isAdmin())) redirect("/admin/login");
+  return { isAdmin: true };
 }

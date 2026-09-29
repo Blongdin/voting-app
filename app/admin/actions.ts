@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { endAdminSession, isAdmin, requireAdmin, tryStartAdminSession } from "@/lib/admin-session";
+import { endAdminSession, requireAdmin, tryStartAdminSession } from "@/lib/admin-session";
 import type { PollInputErrors } from "@/lib/poll-rules";
 import { createPoll } from "@/lib/polls";
 
@@ -33,11 +33,12 @@ export async function createPollAction(
   _prev: CreatePollState,
   formData: FormData,
 ): Promise<CreatePollState> {
-  await requireAdmin();
+  const actor = await requireAdmin();
   const question = String(formData.get("question") ?? "");
   const options = formData.getAll("option").map(String);
 
-  const result = await createPoll({ isAdmin: await isAdmin() }, question, options);
+  // 도메인 모듈도 운영자인지 다시 확인한다. requireAdmin을 통과했으므로 forbidden은 오지 않는다.
+  const result = await createPoll(actor, question, options);
   if (!result.ok) {
     if (result.reason === "forbidden") redirect("/admin/login");
     return { errors: result.errors, values: { question, options } };

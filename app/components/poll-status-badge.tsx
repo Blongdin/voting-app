@@ -1,6 +1,6 @@
 import type { PollStatus } from "@/lib/polls";
 
-const badge: Record<PollStatus, { className: string; label: string }> = {
+const badgeByStatus: Record<PollStatus, { className: string; label: string }> = {
   open: {
     className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
     label: "진행 중",
@@ -9,6 +9,6 @@ const badge: Record<PollStatus, { className: string; label: string }> = {
 };
 
 export function PollStatusBadge({ status }: { status: PollStatus }) {
-  const { className, label } = badge[status];
+  const { className, label } = badgeByStatus[status];
   return <span className={`rounded px-2 py-0.5 text-sm ${className}`}>{label}</span>;
 }

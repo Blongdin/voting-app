@@ -30,11 +30,11 @@ describe("투표 만들기", () => {
     expect(await listPolls()).toEqual([]);
   });
 
-  const two = ["김밥", "라면"];
+  const twoOptions = ["김밥", "라면"];
   it.each([
-    { case: "빈 질문", question: "", options: two, errors: { question: "required" } },
-    { case: "공백뿐인 질문", question: "   ", options: two, errors: { question: "required" } },
-    { case: "200자 초과 질문", question: "가".repeat(201), options: two, errors: { question: "too_long" } },
+    { case: "빈 질문", question: "", options: twoOptions, errors: { question: "required" } },
+    { case: "공백뿐인 질문", question: "   ", options: twoOptions, errors: { question: "required" } },
+    { case: "200자 초과 질문", question: "가".repeat(201), options: twoOptions, errors: { question: "too_long" } },
     { case: "선택지 1개", question: "질문", options: ["김밥"], errors: { options: "too_few" } },
     {
       case: "선택지 11개",
@@ -59,6 +59,22 @@ describe("투표 만들기", () => {
     const result = await createPoll(admin, "가".repeat(200), options);
 
     expect(result.ok).toBe(true);
+  });
+
+  it("글자 수는 DB와 같이 문자 단위로 센다(이모지로 된 200자 질문, 100자 선택지 허용)", async () => {
+    const result = await createPoll(admin, "🗳️".repeat(100), ["👍".repeat(100), "👎"]);
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("질문과 선택지가 모두 틀리면 두 이유를 함께 돌려준다", async () => {
+    const result = await createPoll(admin, " ", ["김밥"]);
+
+    expect(result).toEqual({
+      ok: false,
+      reason: "invalid",
+      errors: { question: "required", options: "too_few" },
+    });
   });
 
   it("질문과 선택지의 앞뒤 공백은 지워서 저장한다", async () => {
