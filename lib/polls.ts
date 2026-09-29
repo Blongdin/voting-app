@@ -99,6 +99,19 @@ export async function getPoll(pollId: string): Promise<Poll | null> {
   };
 }
 
+export type ClosePollResult = { ok: true } | { ok: false; reason: "forbidden" | "not_found" };
+
+/** 투표를 마감한다. 되돌릴 수 없고, 이미 마감된 투표는 그대로 둔다(처음 마감한 시각 유지). */
+export async function closePoll(actor: Actor, pollId: string): Promise<ClosePollResult> {
+  if (!actor.isAdmin) return { ok: false, reason: "forbidden" };
+  if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
+  const [poll] = await sql()`
+    UPDATE polls SET closed_at = COALESCE(closed_at, now())
+    WHERE id = ${pollId}
+    RETURNING id`;
+  return poll ? { ok: true } : { ok: false, reason: "not_found" };
+}
+
 export type CastVoteResult = "ok" | "already_voted" | "closed" | "invalid_option" | "not_found";
 
 export async function castVote(

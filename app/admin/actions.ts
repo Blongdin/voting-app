@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { endAdminSession, requireAdmin, tryStartAdminSession } from "@/lib/admin-session";
 import type { PollInputErrors } from "@/lib/poll-rules";
-import { createPoll } from "@/lib/polls";
+import { closePoll, createPoll } from "@/lib/polls";
 
 export type LoginState = { error?: string };
 
@@ -46,4 +46,17 @@ export async function createPollAction(
   revalidatePath("/");
   revalidatePath("/admin");
   return { createdPollId: result.pollId };
+}
+
+export async function closePollAction(pollId: string) {
+  const actor = await requireAdmin();
+  const result = await closePoll(actor, pollId);
+  if (!result.ok) {
+    if (result.reason === "forbidden") redirect("/admin/login");
+    // 없는 투표면 운영자 결과 화면이 404를 보여 준다.
+  }
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath(`/admin/polls/${pollId}`);
+  revalidatePath(`/polls/${pollId}`);
 }

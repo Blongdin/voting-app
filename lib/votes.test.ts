@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { markClosed, resetDb } from "@/test/db";
-import { castVote, createPoll, getPoll, getResults, type Actor, type Poll } from "@/lib/polls";
+import { resetDb } from "@/test/db";
+import { castVote, closePoll, createPoll, getPoll, getResults, type Actor, type Poll } from "@/lib/polls";
 
 beforeEach(resetDb);
 
@@ -77,7 +77,7 @@ describe("표 내기", () => {
 
   it("마감된 투표에는 표를 낼 수 없다", async () => {
     const poll = await pollWith(["김밥", "라면"]);
-    await markClosed(poll.id);
+    await closePoll(admin, poll.id);
 
     expect(await castVote(poll.id, poll.options[0].id, participant().participantId!)).toBe("closed");
     expect(await getResults(poll.id, admin)).toMatchObject({ results: { totalVotes: 0 } });
@@ -115,7 +115,7 @@ describe("결과 조회", () => {
   it("마감된 투표의 결과는 누구나 본다", async () => {
     const poll = await pollWith(["김밥", "라면"]);
     await castVote(poll.id, poll.options[0].id, participant().participantId!);
-    await markClosed(poll.id);
+    await closePoll(admin, poll.id);
 
     for (const viewer of [participant(), { isAdmin: false }]) {
       expect(await getResults(poll.id, viewer)).toMatchObject({

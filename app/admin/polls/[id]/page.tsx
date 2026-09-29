@@ -5,6 +5,7 @@ import { PollStatusBadge } from "@/app/components/poll-status-badge";
 import { requireAdmin } from "@/lib/admin-session";
 import { resultsViewer } from "@/lib/participant";
 import { getPoll, getResults } from "@/lib/polls";
+import { ClosePollButton } from "./close-poll-button";
 
 // 운영자는 표를 내지 않아도 결과를 본다.
 export default async function AdminPollPage({ params }: PageProps<"/admin/polls/[id]">) {
@@ -25,11 +26,12 @@ export default async function AdminPollPage({ params }: PageProps<"/admin/polls/
         <PollStatusBadge status={poll.status} />
       </header>
       <LivePollResults pollId={poll.id} initial={results.results} />
-      <p className="mt-6 text-sm">
+      <footer className="mt-8 flex items-center justify-between gap-4 text-sm">
         <Link href={`/polls/${poll.id}`} className="underline">
           참여자 화면 보기
         </Link>
-      </p>
+        {poll.status === "open" && <ClosePollButton pollId={poll.id} />}
+      </footer>
     </main>
   );
 }
