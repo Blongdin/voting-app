@@ -35,7 +35,7 @@ export default async function PollPage({ params, searchParams }: PageProps<"/pol
         </p>
       )}
       {results.ok ? (
-        <LivePollResults key={poll.id} pollId={poll.id} initial={results.results} />
+        <LivePollResults pollId={poll.id} initial={results.results} />
       ) : (
         <VoteForm poll={poll} />
       )}

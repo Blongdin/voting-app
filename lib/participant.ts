@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
+import { isAdmin } from "@/lib/admin-session";
 import { isUuid, type Actor } from "@/lib/polls";
 
 // 참여자 쿠키(ADR-0001). 로그인 없이 브라우저 단위로 참여자를 구분한다.
@@ -17,6 +18,14 @@ async function cookieParticipantId(): Promise<string | undefined> {
 /** 투표 화면의 행위자. 운영자도 여기서는 참여자로만 본다(운영자용 결과는 /admin/polls). */
 export async function participantActor(): Promise<Actor> {
   return { isAdmin: false, participantId: await cookieParticipantId() };
+}
+
+/**
+ * 결과를 보는 사람: 운영자 세션과 참여자 쿠키를 함께 본다.
+ * 운영자 결과 화면과 결과 API가 같은 값을 써서, 첫 화면과 폴링 결과가 어긋나지 않게 한다.
+ */
+export async function resultsViewer(): Promise<Actor> {
+  return { isAdmin: await isAdmin(), participantId: await cookieParticipantId() };
 }
 
 /**

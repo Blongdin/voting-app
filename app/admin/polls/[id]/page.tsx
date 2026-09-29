@@ -3,14 +3,16 @@ import { notFound } from "next/navigation";
 import { LivePollResults } from "@/app/components/live-poll-results";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
 import { requireAdmin } from "@/lib/admin-session";
+import { resultsViewer } from "@/lib/participant";
 import { getPoll, getResults } from "@/lib/polls";
 
 // 운영자는 표를 내지 않아도 결과를 본다.
 export default async function AdminPollPage({ params }: PageProps<"/admin/polls/[id]">) {
-  const actor = await requireAdmin();
+  await requireAdmin();
   const { id } = await params;
   const poll = await getPoll(id);
-  const results = await getResults(id, actor);
+  // 결과 API와 같은 보는 사람을 써서 폴링 전후로 "내 표" 표시가 어긋나지 않게 한다.
+  const results = await getResults(id, await resultsViewer());
   if (!poll || !results.ok) notFound();
 
   return (
@@ -22,7 +24,7 @@ export default async function AdminPollPage({ params }: PageProps<"/admin/polls/
         <h1 className="text-2xl font-bold">{poll.question}</h1>
         <PollStatusBadge status={poll.status} />
       </header>
-      <LivePollResults key={poll.id} pollId={poll.id} initial={results.results} />
+      <LivePollResults pollId={poll.id} initial={results.results} />
       <p className="mt-6 text-sm">
         <Link href={`/polls/${poll.id}`} className="underline">
           참여자 화면 보기
