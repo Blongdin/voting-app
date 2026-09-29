@@ -1,8 +1,12 @@
+import { PollList } from "@/app/components/poll-list";
 import { requireAdmin } from "@/lib/admin-session";
+import { listPolls } from "@/lib/polls";
 import { logout } from "./actions";
+import { CreatePollForm } from "./create-poll-form";
 
 export default async function AdminPage() {
   await requireAdmin();
+  const polls = await listPolls();
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
@@ -17,7 +21,16 @@ export default async function AdminPage() {
           </button>
         </form>
       </header>
-      <p className="text-zinc-500">투표 만들기·마감·삭제는 다음 단계에서 추가됩니다.</p>
+
+      <section className="mb-12">
+        <h2 className="mb-4 text-lg font-semibold">새 투표</h2>
+        <CreatePollForm />
+      </section>
+
+      <section>
+        <h2 className="mb-4 text-lg font-semibold">모든 투표</h2>
+        <PollList polls={polls} />
+      </section>
     </main>
   );
 }

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { connection } from "next/server";
-import { listPolls, type PollStatus, type PollSummary } from "@/lib/polls";
+import { PollList } from "@/app/components/poll-list";
+import { listPolls } from "@/lib/polls";
 
 export default async function Home() {
   // 목록은 요청마다 DB에서 읽는다(빌드 시점에 굳히지 않는다).
@@ -10,46 +10,7 @@ export default async function Home() {
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
       <h1 className="mb-8 text-2xl font-bold">투표</h1>
-      {polls.length === 0 ? (
-        <p className="text-zinc-500">아직 투표가 없습니다.</p>
-      ) : (
-        <ul className="flex flex-col gap-3">
-          {polls.map((poll) => (
-            <PollListItem key={poll.id} poll={poll} />
-          ))}
-        </ul>
-      )}
+      <PollList polls={polls} />
     </main>
-  );
-}
-
-const statusStyle: Record<PollStatus, { question: string; badge: string; label: string }> = {
-  open: {
-    question: "font-medium",
-    badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
-    label: "진행 중",
-  },
-  closed: {
-    question: "text-zinc-500",
-    badge: "bg-zinc-100 dark:bg-zinc-800",
-    label: "마감",
-  },
-};
-
-function PollListItem({ poll }: { poll: PollSummary }) {
-  const style = statusStyle[poll.status];
-  return (
-    <li>
-      <Link
-        href={`/polls/${poll.id}`}
-        className="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-      >
-        <span className={style.question}>{poll.question}</span>
-        <span className="flex shrink-0 items-center gap-3 text-sm text-zinc-500">
-          <span>{poll.totalVotes}표</span>
-          <span className={`rounded px-2 py-0.5 ${style.badge}`}>{style.label}</span>
-        </span>
-      </Link>
-    </li>
   );
 }
