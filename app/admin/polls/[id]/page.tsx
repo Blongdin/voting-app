@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PollResultsView } from "@/app/components/poll-results";
+import { LivePollResults } from "@/app/components/live-poll-results";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
 import { requireAdmin } from "@/lib/admin-session";
 import { getPoll, getResults } from "@/lib/polls";
@@ -22,7 +22,7 @@ export default async function AdminPollPage({ params }: PageProps<"/admin/polls/
         <h1 className="text-2xl font-bold">{poll.question}</h1>
         <PollStatusBadge status={poll.status} />
       </header>
-      <PollResultsView results={results.results} />
+      <LivePollResults key={poll.id} pollId={poll.id} initial={results.results} />
       <p className="mt-6 text-sm">
         <Link href={`/polls/${poll.id}`} className="underline">
           참여자 화면 보기

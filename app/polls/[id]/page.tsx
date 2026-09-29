@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PollResultsView } from "@/app/components/poll-results";
+import { LivePollResults } from "@/app/components/live-poll-results";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
 import { participantActor } from "@/lib/participant";
 import { getPoll, getResults, type Poll } from "@/lib/polls";
@@ -34,7 +34,11 @@ export default async function PollPage({ params, searchParams }: PageProps<"/pol
           {message}
         </p>
       )}
-      {results.ok ? <PollResultsView results={results.results} /> : <VoteForm poll={poll} />}
+      {results.ok ? (
+        <LivePollResults key={poll.id} pollId={poll.id} initial={results.results} />
+      ) : (
+        <VoteForm poll={poll} />
+      )}
     </main>
   );
 }
