@@ -66,10 +66,21 @@ describe("마감 시각", () => {
     expect((await getPoll(created.pollId))?.status).toBe("closed");
   });
 
-  it("마감 시각을 넣지 않으면 마감 시각이 없다", async () => {
+  it("마감 시각이 지나 이미 마감된 투표를 운영자가 다시 마감해도 그대로 마감이다", async () => {
+    const created = await createPoll(admin, "점심 뭐 먹을까요?", ["김밥", "라면"], inHours(1));
+    if (!created.ok) throw new Error("만들기 실패");
+    await moveDeadlineToPast(created.pollId);
+
+    expect(await closePoll(admin, created.pollId)).toEqual({ ok: true });
+    expect((await getPoll(created.pollId))?.status).toBe("closed");
+  });
+
+  it("마감 시각을 넣지 않으면 마감 시각 없이 진행 중이다", async () => {
     const created = await createPoll(admin, "점심 뭐 먹을까요?", ["김밥", "라면"]);
 
     if (!created.ok) throw new Error("만들기 실패");
-    expect((await getPoll(created.pollId))?.closesAt).toBeNull();
+    const poll = await getPoll(created.pollId);
+    expect(poll?.closesAt).toBeNull();
+    expect(poll?.status).toBe("open");
   });
 });

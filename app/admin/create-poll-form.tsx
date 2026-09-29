@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useSyncExternalStore } from "react";
 import { createPollAction, type CreatePollState } from "@/app/admin/actions";
 import {
   MAX_OPTIONS,
@@ -37,6 +37,8 @@ function localToIso(local: string): string {
   const date = new Date(local); // 시간대가 없는 날짜·시간은 브라우저 현지 시각으로 해석된다
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
+
+const noSubscribe = () => () => {};
 
 const initialState: CreatePollState = {};
 
@@ -76,6 +78,9 @@ function PollFields({
   };
   const removeOption = (key: number) => setOptionKeys((keys) => keys.filter((k) => k !== key));
   const [closesAtLocal, setClosesAtLocal] = useState(state.values?.closesAtLocal ?? "");
+  // 현지 시각 → UTC 변환은 브라우저 시간대가 필요하다. 서버에서 그릴 때(하이드레이션 전)는 비워 두고,
+  // 그 상태로 제출되면 서버가 "다시 입력하세요"로 거절한다.
+  const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
 
   const inputClass =
     "w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
@@ -143,6 +148,7 @@ function PollFields({
         <label htmlFor="closesAtLocal" className="text-sm font-medium">
           마감 시각 <span className="font-normal text-zinc-500">(선택, 비우면 직접 마감)</span>
         </label>
+        <p className="text-xs text-zinc-500">이 기기의 시간대로 입력합니다. 화면에는 한국 시간으로 표시됩니다.</p>
         <input
           id="closesAtLocal"
           name="closesAtLocal"
@@ -151,7 +157,7 @@ function PollFields({
           onChange={(event) => setClosesAtLocal(event.target.value)}
           className={`${inputClass} sm:w-auto`}
         />
-        <input type="hidden" name="closesAt" value={localToIso(closesAtLocal)} />
+        <input type="hidden" name="closesAt" value={hydrated ? localToIso(closesAtLocal) : ""} />
         {state.errors?.closesAt && (
           <p role="alert" className="text-sm text-red-600 dark:text-red-400">
             {closesAtMessages[state.errors.closesAt]}

@@ -119,10 +119,10 @@ export type AdminPollChangeResult = { ok: true } | { ok: false; reason: "forbidd
 export async function closePoll(actor: Actor, pollId: string): Promise<AdminPollChangeResult> {
   if (!actor.isAdmin) return { ok: false, reason: "forbidden" };
   if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
-  const [poll] = await sql()`
-    UPDATE polls SET closed_at = COALESCE(closed_at, now())
-    WHERE id = ${pollId}
-    RETURNING id`;
+  const db = sql();
+  // 이미 마감(운영자가 닫았거나 마감 시각이 지남)이면 그대로 둔다.
+  await db`UPDATE polls SET closed_at = now() WHERE id = ${pollId} AND NOT is_closed(closed_at, closes_at)`;
+  const [poll] = await db`SELECT 1 FROM polls WHERE id = ${pollId}`;
   return poll ? { ok: true } : { ok: false, reason: "not_found" };
 }
 

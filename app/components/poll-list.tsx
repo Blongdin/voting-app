@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { formatDeadline } from "@/lib/format";
 import type { PollSummary } from "@/lib/polls";
+import { PollDeadline } from "./poll-deadline";
 import { PollStatusBadge } from "./poll-status-badge";
 
 /** hrefBase: 항목 링크의 앞부분. 운영자 목록은 운영자용 결과 화면으로 보낸다. */
@@ -26,9 +26,7 @@ export function PollList({
               <span className={poll.status === "closed" ? "text-zinc-500" : "font-medium"}>
                 {poll.question}
               </span>
-              {poll.status === "open" && poll.closesAt && (
-                <span className="text-xs text-zinc-500">{formatDeadline(poll.closesAt)}</span>
-              )}
+              <PollDeadline poll={poll} className="text-xs" />
             </span>
             <span className="flex shrink-0 items-center gap-3 text-sm text-zinc-500">
               <span>{poll.totalVotes}표</span>

@@ -40,6 +40,10 @@ export async function createPollAction(
   const closesAtIso = String(formData.get("closesAt") ?? "");
   const closesAtLocal = String(formData.get("closesAtLocal") ?? "");
   const closesAt = closesAtIso ? new Date(closesAtIso) : null;
+  if (closesAtLocal && !closesAtIso) {
+    // 스크립트가 돌기 전에 제출됐다. 마감 시각을 조용히 버리지 않는다.
+    return { errors: { closesAt: "invalid" }, values: { question, options, closesAtLocal } };
+  }
 
   // 도메인 모듈도 운영자인지 다시 확인한다. requireAdmin을 통과했으므로 forbidden은 오지 않는다.
   const result = await createPoll(actor, question, options, closesAt);
