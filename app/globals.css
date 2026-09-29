@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
+/*
+ * 디자인 토큰. 금융 앱처럼 밝은 회색 바탕 위 흰 카드, 파란 강조색, 큰 글씨를 쓴다.
+ * 색은 여기서만 정하고 화면은 bg-surface, text-sub 같은 이름으로 쓴다.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #f2f4f6;
+  --surface: #ffffff;
+  --surface-muted: #f9fafb;
+  --fill: #f2f4f6;
+  --line: #e5e8eb;
+  --text: #191f28;
+  --sub: #4e5968;
+  --muted: #8b95a1;
+  --primary: #3182f6;
+  --primary-pressed: #1b64da;
+  --primary-soft: #e8f3ff;
+  --danger: #f04452;
+  --danger-soft: #ffeeee;
+  --bar: #d1d6db;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #101013;
+    --surface: #1d1d22;
+    --surface-muted: #26262c;
+    --fill: #2c2c33;
+    --line: #34343b;
+    --text: #f2f3f5;
+    --sub: #c3c7cd;
+    --muted: #8b919a;
+    --primary: #3b8bff;
+    --primary-pressed: #2f74d8;
+    --primary-soft: #1d2f4d;
+    --danger: #ff5c68;
+    --danger-soft: #3a2024;
+    --bar: #45454d;
   }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-fill: var(--fill);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-sub: var(--sub);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-pressed: var(--primary-pressed);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-bar: var(--bar);
+  --font-sans: var(--font-pretendard), system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--text);
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }

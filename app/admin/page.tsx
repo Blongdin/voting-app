@@ -1,4 +1,5 @@
 import { PollList } from "@/app/components/poll-list";
+import { buttonClass, Card, Page, SectionTitle, Title, TopBar } from "@/app/components/ui";
 import { requireAdmin } from "@/lib/admin-session";
 import { listPolls } from "@/lib/polls";
 import { logout } from "./actions";
@@ -9,28 +10,26 @@ export default async function AdminPage() {
   const polls = await listPolls();
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">운영자</h1>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700"
-          >
-            로그아웃
-          </button>
-        </form>
-      </header>
+    <Page>
+      <TopBar
+        back={{ href: "/", label: "홈" }}
+        right={
+          <form action={logout}>
+            <button type="submit" className={buttonClass("neutral", "small")}>
+              로그아웃
+            </button>
+          </form>
+        }
+      />
+      <Title>운영자</Title>
 
-      <section className="mb-12">
-        <h2 className="mb-4 text-lg font-semibold">새 투표</h2>
+      <Card className="mb-8">
+        <SectionTitle>새 투표</SectionTitle>
         <CreatePollForm />
-      </section>
+      </Card>
 
-      <section>
-        <h2 className="mb-4 text-lg font-semibold">모든 투표</h2>
-        <PollList polls={polls} hrefBase="/admin/polls" />
-      </section>
-    </main>
+      <SectionTitle>모든 투표</SectionTitle>
+      <PollList polls={polls} hrefBase="/admin/polls" />
+    </Page>
   );
 }

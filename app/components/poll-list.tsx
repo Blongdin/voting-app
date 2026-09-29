@@ -12,25 +12,35 @@ export function PollList({
   hrefBase?: string;
 }) {
   if (polls.length === 0) {
-    return <p className="text-zinc-500">아직 투표가 없습니다.</p>;
+    return (
+      <div className="rounded-3xl bg-surface px-5 py-12 text-center">
+        <p className="text-[17px] font-semibold text-text">아직 투표가 없습니다.</p>
+        <p className="mt-1 text-[15px] text-muted">새 투표가 올라오면 여기에 보여요.</p>
+      </div>
+    );
   }
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="overflow-hidden rounded-3xl bg-surface">
       {polls.map((poll) => (
-        <li key={poll.id}>
+        <li key={poll.id} className="border-b border-line last:border-b-0">
           <Link
             href={`${hrefBase}/${poll.id}`}
-            className="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
+            className="flex items-center gap-3 px-5 py-4 transition-colors active:bg-fill"
           >
-            <span className="flex flex-col">
-              <span className={poll.status === "closed" ? "text-zinc-500" : "font-medium"}>
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
+              <span
+                className={`truncate text-[17px] font-semibold ${poll.status === "closed" ? "text-muted" : "text-text"}`}
+              >
                 {poll.question}
               </span>
-              <PollDeadline poll={poll} className="text-xs" />
+              <span className="flex items-center gap-2 text-[14px] text-muted">
+                <span className="tabular-nums">{poll.totalVotes}표</span>
+                <PollDeadline poll={poll} className="before:mr-2 before:content-['·']" />
+              </span>
             </span>
-            <span className="flex shrink-0 items-center gap-3 text-sm text-zinc-500">
-              <span>{poll.totalVotes}표</span>
-              <PollStatusBadge status={poll.status} />
+            <PollStatusBadge status={poll.status} />
+            <span aria-hidden className="text-xl text-muted">
+              ›
             </span>
           </Link>
         </li>

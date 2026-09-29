@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LivePollResults } from "@/app/components/live-poll-results";
-import { PollStatusBadge } from "@/app/components/poll-status-badge";
 import { PollDeadline } from "@/app/components/poll-deadline";
+import { PollStatusBadge } from "@/app/components/poll-status-badge";
+import { BottomCTA, buttonClass, Notice, Page, Title, TopBar } from "@/app/components/ui";
 import { participantActor } from "@/lib/participant";
 import { getPoll, getResults, type Poll } from "@/lib/polls";
 import { castVoteAction } from "./actions";
@@ -19,54 +19,49 @@ export default async function PollPage({ params, searchParams }: PageProps<"/pol
   const message = voteNoticeMessage(notice, results.ok);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
-      <Link href="/" className="text-sm text-zinc-500 hover:underline">
-        ← 투표 목록
-      </Link>
-      <header className="mt-4 mb-6 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold">{poll.question}</h1>
+    <Page>
+      <TopBar back={{ href: "/", label: "투표 목록" }} />
+      <header className="mt-2">
         <PollStatusBadge status={poll.status} />
+        <Title sub={<PollDeadline poll={poll} />}>{poll.question}</Title>
       </header>
-      <PollDeadline poll={poll} className="-mt-4 mb-6 block text-sm" />
-      {message && (
-        <p
-          role="status"
-          className="mb-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100"
-        >
-          {message}
-        </p>
-      )}
+      {message && <Notice tone={results.ok ? "info" : "warning"}>{message}</Notice>}
       {results.ok ? (
         <LivePollResults pollId={poll.id} initial={results.results} />
       ) : (
         <VoteForm poll={poll} />
       )}
-    </main>
+    </Page>
   );
 }
 
 function VoteForm({ poll }: { poll: Poll }) {
   return (
-    <form action={castVoteAction.bind(null, poll.id)} className="flex flex-col gap-4">
-      <fieldset className="flex flex-col gap-2">
+    <form action={castVoteAction.bind(null, poll.id)} className="flex flex-1 flex-col">
+      <fieldset className="flex flex-col gap-3">
         <legend className="sr-only">선택지</legend>
         {poll.options.map((option) => (
           <label
             key={option.id}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 has-[:checked]:border-zinc-900 dark:border-zinc-800 dark:has-[:checked]:border-zinc-100"
+            className="flex min-h-16 cursor-pointer items-center gap-4 rounded-2xl bg-surface px-5 py-4 ring-primary transition-[box-shadow,background-color] has-[:checked]:bg-primary-soft has-[:checked]:ring-2 has-[:focus-visible]:ring-2 active:scale-[0.99]"
           >
-            <input type="radio" name="optionId" value={option.id} required />
-            {option.label}
+            <input type="radio" name="optionId" value={option.id} required className="peer sr-only" />
+            <span
+              aria-hidden
+              className="flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-line text-[13px] font-bold text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white"
+            >
+              ✓
+            </span>
+            <span className="text-[17px] font-semibold break-keep text-text">{option.label}</span>
           </label>
         ))}
       </fieldset>
-      <p className="text-sm text-zinc-500">낸 표는 바꿀 수 없습니다.</p>
-      <button
-        type="submit"
-        className="self-start rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        표 내기
-      </button>
+      <p className="mt-4 text-center text-[14px] text-muted">낸 표는 바꿀 수 없어요.</p>
+      <BottomCTA>
+        <button type="submit" className={buttonClass("primary", "large")}>
+          표 내기
+        </button>
+      </BottomCTA>
     </form>
   );
 }

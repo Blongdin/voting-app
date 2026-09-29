@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { useFormStatus } from "react-dom";
+import { buttonClass } from "@/app/components/ui";
 
 const noSubscribe = () => () => {};
 
@@ -14,24 +15,25 @@ export function ConfirmSubmitButton({
   confirmMessage,
   label,
   pendingLabel,
-  danger = false,
+  variant,
 }: {
   action: () => Promise<void>;
   confirmMessage: string;
   label: string;
   pendingLabel: string;
-  danger?: boolean;
+  variant: "primary" | "danger";
 }) {
   const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
 
   return (
     <form
       action={action}
+      className="flex-1"
       onSubmit={(event) => {
         if (!window.confirm(confirmMessage)) event.preventDefault();
       }}
     >
-      <SubmitButton disabled={!hydrated} label={label} pendingLabel={pendingLabel} danger={danger} />
+      <SubmitButton disabled={!hydrated} label={label} pendingLabel={pendingLabel} variant={variant} />
     </form>
   );
 }
@@ -40,23 +42,16 @@ function SubmitButton({
   disabled,
   label,
   pendingLabel,
-  danger,
+  variant,
 }: {
   disabled: boolean;
   label: string;
   pendingLabel: string;
-  danger: boolean;
+  variant: "primary" | "danger";
 }) {
   const { pending } = useFormStatus();
-  const color = danger
-    ? "border-red-300 text-red-700 dark:border-red-800 dark:text-red-300"
-    : "border-zinc-300 dark:border-zinc-700";
   return (
-    <button
-      type="submit"
-      disabled={disabled || pending}
-      className={`rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50 ${color}`}
-    >
+    <button type="submit" disabled={disabled || pending} className={buttonClass(variant, "large")}>
       {pending ? pendingLabel : label}
     </button>
   );

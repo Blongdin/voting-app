@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState, useSyncExternalStore } from "react";
 import { createPollAction, type CreatePollState } from "@/app/admin/actions";
+import { buttonClass, FieldError, inputClass } from "@/app/components/ui";
 import {
   MAX_OPTIONS,
   MIN_OPTIONS,
@@ -42,11 +43,13 @@ const noSubscribe = () => () => {};
 
 const initialState: CreatePollState = {};
 
+const labelClass = "mb-2 block text-[15px] font-medium text-sub";
+
 export function CreatePollForm() {
   const [state, formAction, pending] = useActionState(createPollAction, initialState);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {state.createdPollId && <CreatedPollNotice pollId={state.createdPollId} />}
       {/* 투표를 만들 때마다 key가 바뀌어 폼이 빈 상태(선택지 2개)로 돌아간다. */}
       <PollFields
@@ -82,94 +85,79 @@ function PollFields({
   // 그 상태로 제출되면 서버가 "다시 입력하세요"로 거절한다.
   const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
 
-  const inputClass =
-    "w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
-
   return (
-    <form action={formAction} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <label htmlFor="question" className="text-sm font-medium">
+    <form action={formAction} className="flex flex-col gap-6">
+      <div>
+        <label htmlFor="question" className={labelClass}>
           질문
         </label>
         <input
           id="question"
           name="question"
           required
+          placeholder="예: 점심 뭐 먹을까요?"
           defaultValue={state.values?.question}
-          className={inputClass}
+          className={inputClass()}
         />
-        {state.errors?.question && (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {questionMessages[state.errors.question]}
-          </p>
-        )}
+        {state.errors?.question && <FieldError>{questionMessages[state.errors.question]}</FieldError>}
       </div>
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-2 text-sm font-medium">
-          선택지 ({MIN_OPTIONS}~{MAX_OPTIONS}개)
+      <fieldset>
+        <legend className={labelClass}>
+          선택지 <span className="text-muted">({MIN_OPTIONS}~{MAX_OPTIONS}개)</span>
         </legend>
-        {optionKeys.map((key, index) => (
-          <div key={key} className="flex gap-2">
-            <input
-              name="option"
-              required
-              defaultValue={state.values?.options[index]}
-              aria-label={`선택지 ${index + 1}`}
-              className={inputClass}
-            />
-            <button
-              type="button"
-              onClick={() => removeOption(key)}
-              disabled={optionKeys.length <= MIN_OPTIONS}
-              aria-label={`선택지 ${index + 1} 빼기`}
-              className="rounded-lg border border-zinc-300 px-3 text-sm disabled:opacity-30 dark:border-zinc-700"
-            >
-              빼기
-            </button>
-          </div>
-        ))}
+        <div className="flex flex-col gap-2">
+          {optionKeys.map((key, index) => (
+            <div key={key} className="flex items-center gap-2">
+              <input
+                name="option"
+                required
+                placeholder={`선택지 ${index + 1}`}
+                defaultValue={state.values?.options[index]}
+                aria-label={`선택지 ${index + 1}`}
+                className={inputClass()}
+              />
+              <button
+                type="button"
+                onClick={() => removeOption(key)}
+                disabled={optionKeys.length <= MIN_OPTIONS}
+                aria-label={`선택지 ${index + 1} 빼기`}
+                className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-fill text-lg text-muted active:brightness-95 disabled:opacity-30"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
         <button
           type="button"
           onClick={addOption}
           disabled={optionKeys.length >= MAX_OPTIONS}
-          className="self-start rounded-lg border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-30 dark:border-zinc-700"
+          className={`${buttonClass("secondary", "medium")} mt-3 w-full`}
         >
-          선택지 추가
+          + 선택지 추가
         </button>
-        {state.errors?.options && (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {optionsMessages[state.errors.options]}
-          </p>
-        )}
+        {state.errors?.options && <FieldError>{optionsMessages[state.errors.options]}</FieldError>}
       </fieldset>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="closesAtLocal" className="text-sm font-medium">
-          마감 시각 <span className="font-normal text-zinc-500">(선택, 비우면 직접 마감)</span>
+      <div>
+        <label htmlFor="closesAtLocal" className={labelClass}>
+          마감 시각 <span className="text-muted">(선택, 비우면 직접 마감)</span>
         </label>
-        <p className="text-xs text-zinc-500">이 기기의 시간대로 입력합니다. 화면에는 한국 시간으로 표시됩니다.</p>
         <input
           id="closesAtLocal"
           name="closesAtLocal"
           type="datetime-local"
           value={closesAtLocal}
           onChange={(event) => setClosesAtLocal(event.target.value)}
-          className={`${inputClass} sm:w-auto`}
+          className={inputClass()}
         />
+        <p className="mt-2 text-[13px] text-muted">이 기기의 시간대로 입력합니다. 화면에는 한국 시간으로 표시됩니다.</p>
         <input type="hidden" name="closesAt" value={hydrated ? localToIso(closesAtLocal) : ""} />
-        {state.errors?.closesAt && (
-          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-            {closesAtMessages[state.errors.closesAt]}
-          </p>
-        )}
+        {state.errors?.closesAt && <FieldError>{closesAtMessages[state.errors.closesAt]}</FieldError>}
       </div>
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="self-start rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
+      <button type="submit" disabled={pending} className={buttonClass("primary", "large")}>
         {pending ? "만드는 중…" : "투표 만들기"}
       </button>
     </form>
@@ -191,15 +179,12 @@ function CreatedPollNotice({ pollId }: { pollId: string }) {
   };
 
   return (
-    <div
-      role="status"
-      className="flex flex-wrap items-center gap-3 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"
-    >
-      <span>투표를 만들었습니다.</span>
-      <Link href={path} className="font-mono underline">
+    <div role="status" className="rounded-2xl bg-primary-soft p-4">
+      <p className="text-[16px] font-bold text-primary">투표를 만들었어요</p>
+      <Link href={path} className="mt-1 block truncate text-[14px] text-sub underline underline-offset-2">
         {path}
       </Link>
-      <button type="button" onClick={copy} className="underline">
+      <button type="button" onClick={copy} className={`${buttonClass("primary", "small")} mt-3`}>
         {copyState === "copied" ? "복사됨" : copyState === "failed" ? "복사할 수 없음" : "링크 복사"}
       </button>
     </div>

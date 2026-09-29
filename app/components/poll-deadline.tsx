@@ -10,5 +10,5 @@ export function PollDeadline({
   className?: string;
 }) {
   if (poll.status !== "open" || !poll.closesAt) return null;
-  return <span className={`text-zinc-500 ${className}`}>{formatDeadline(poll.closesAt)}</span>;
+  return <span className={`text-muted ${className}`}>{formatDeadline(poll.closesAt)}</span>;
 }

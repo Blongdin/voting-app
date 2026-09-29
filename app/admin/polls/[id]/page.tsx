@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { closePollAction, deletePollAction } from "@/app/admin/actions";
-import { PollStatusBadge } from "@/app/components/poll-status-badge";
 import { PollDeadline } from "@/app/components/poll-deadline";
+import { PollStatusBadge } from "@/app/components/poll-status-badge";
+import { Page, Title, TopBar } from "@/app/components/ui";
 import { requireAdmin } from "@/lib/admin-session";
 import { resultsViewer } from "@/lib/participant";
 import { getPoll, getResults } from "@/lib/polls";
@@ -18,21 +18,18 @@ export default async function AdminPollPage({ params }: PageProps<"/admin/polls/
   if (!poll || !results.ok) notFound();
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
-      <Link href="/admin" className="text-sm text-zinc-500 hover:underline">
-        ← 운영자 화면
-      </Link>
-      <header className="mt-4 mb-6 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold">{poll.question}</h1>
+    <Page>
+      <TopBar back={{ href: "/admin", label: "운영자" }} />
+      <header className="mt-2">
         <PollStatusBadge status={poll.status} />
+        <Title sub={<PollDeadline poll={poll} />}>{poll.question}</Title>
       </header>
-      <PollDeadline poll={poll} className="-mt-4 mb-6 block text-sm" />
       <AdminPollPanel
         pollId={poll.id}
         initial={results.results}
         closeAction={closePollAction.bind(null, poll.id)}
         deleteAction={deletePollAction.bind(null, poll.id)}
       />
-    </main>
+    </Page>
   );
 }

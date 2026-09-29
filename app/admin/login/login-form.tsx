@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { login, type LoginState } from "@/app/admin/actions";
+import { BottomCTA, buttonClass, FieldError, inputClass } from "@/app/components/ui";
 
 const initialState: LoginState = {};
 
@@ -9,8 +10,8 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
-      <label htmlFor="password" className="text-sm font-medium">
+    <form action={formAction} className="flex flex-1 flex-col">
+      <label htmlFor="password" className="mb-2 text-[15px] font-medium text-sub">
         비밀번호
       </label>
       <input
@@ -20,20 +21,15 @@ export function LoginForm() {
         required
         autoFocus
         autoComplete="current-password"
-        className="rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+        placeholder="운영자 비밀번호"
+        className={inputClass(true)}
       />
-      {state.error && (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-          {state.error}
-        </p>
-      )}
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        {pending ? "확인 중…" : "로그인"}
-      </button>
+      {state.error && <FieldError>{state.error}</FieldError>}
+      <BottomCTA>
+        <button type="submit" disabled={pending} className={buttonClass("primary", "large")}>
+          {pending ? "확인 중…" : "로그인"}
+        </button>
+      </BottomCTA>
     </form>
   );
 }
