@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { revalidatePollPages } from "@/app/revalidate-poll-pages";
 import { endAdminSession, requireAdmin, tryStartAdminSession } from "@/lib/admin-session";
 import type { PollInputErrors } from "@/lib/poll-rules";
 import { closePoll, createPoll } from "@/lib/polls";
@@ -43,8 +43,7 @@ export async function createPollAction(
     if (result.reason === "forbidden") redirect("/admin/login");
     return { errors: result.errors, values: { question, options } };
   }
-  revalidatePath("/");
-  revalidatePath("/admin");
+  revalidatePollPages();
   return { createdPollId: result.pollId };
 }
 
@@ -52,11 +51,10 @@ export async function closePollAction(pollId: string) {
   const actor = await requireAdmin();
   const result = await closePoll(actor, pollId);
   if (!result.ok) {
+    // requireAdmin을 통과했으므로 forbidden은 오지 않는다.
     if (result.reason === "forbidden") redirect("/admin/login");
-    // 없는 투표면 운영자 결과 화면이 404를 보여 준다.
+    // 없는 투표면 새로 그릴 화면이 없다. 운영자 결과 화면은 이미 404를 보여 준다.
+    return;
   }
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath(`/admin/polls/${pollId}`);
-  revalidatePath(`/polls/${pollId}`);
+  revalidatePollPages(pollId);
 }

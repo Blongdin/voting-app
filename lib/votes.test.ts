@@ -1,24 +1,17 @@
 import { randomUUID } from "node:crypto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { resetDb } from "@/test/db";
-import { castVote, closePoll, createPoll, getPoll, getResults, type Actor, type Poll } from "@/lib/polls";
+import { createOpenPoll, resetDb } from "@/test/db";
+import { castVote, closePoll, getResults, type Actor } from "@/lib/polls";
 
 beforeEach(resetDb);
 
 const admin: Actor = { isAdmin: true };
 const participant = (): Actor => ({ isAdmin: false, participantId: randomUUID() });
 
-async function pollWith(optionLabels: string[]): Promise<Poll> {
-  const created = await createPoll(admin, "점심 뭐 먹을까요?", optionLabels);
-  if (!created.ok) throw new Error("테스트 준비: 투표 만들기 실패");
-  const poll = await getPoll(created.pollId);
-  if (!poll) throw new Error("테스트 준비: 투표 조회 실패");
-  return poll;
-}
 
 describe("표 내기", () => {
   it("표를 내면 결과에 반영되고, 낸 참여자는 자기가 고른 선택지를 본다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     const me = participant();
 
     expect(await castVote(poll.id, poll.options[1].id, me.participantId!)).toBe("ok");
@@ -39,7 +32,7 @@ describe("표 내기", () => {
   });
 
   it("같은 참여자가 다시 표를 내면 이미 표를 냄이 되고 표 수는 변하지 않는다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     const me = participant();
     await castVote(poll.id, poll.options[0].id, me.participantId!);
 
@@ -52,7 +45,7 @@ describe("표 내기", () => {
   });
 
   it("같은 참여자의 표 두 개를 동시에 보내도 하나만 들어간다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     const me = participant();
 
     const outcomes = await Promise.all([
@@ -65,8 +58,8 @@ describe("표 내기", () => {
   });
 
   it("다른 투표의 선택지로는 표를 낼 수 없다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
-    const other = await pollWith(["짜장", "짬뽕"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
+    const other = await createOpenPoll(["짜장", "짬뽕"]);
 
     expect(await castVote(poll.id, other.options[0].id, participant().participantId!)).toBe(
       "invalid_option",
@@ -76,7 +69,7 @@ describe("표 내기", () => {
   });
 
   it("마감된 투표에는 표를 낼 수 없다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     await closePoll(admin, poll.id);
 
     expect(await castVote(poll.id, poll.options[0].id, participant().participantId!)).toBe("closed");
@@ -84,7 +77,7 @@ describe("표 내기", () => {
   });
 
   it("없는 투표에는 표를 낼 수 없다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     const someone = participant().participantId!;
 
     expect(await castVote(randomUUID(), poll.options[0].id, someone)).toBe("not_found");
@@ -95,7 +88,7 @@ describe("표 내기", () => {
 
 describe("결과 조회", () => {
   it("진행 중인 투표의 결과는 표를 내지 않은 참여자와 참여자 ID가 없는 사람에게 보이지 않는다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     await castVote(poll.id, poll.options[0].id, participant().participantId!);
 
     expect(await getResults(poll.id, participant())).toEqual({ ok: false, reason: "forbidden" });
@@ -103,7 +96,7 @@ describe("결과 조회", () => {
   });
 
   it("운영자는 표를 내지 않아도 진행 중인 투표의 결과를 본다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     await castVote(poll.id, poll.options[0].id, participant().participantId!);
 
     expect(await getResults(poll.id, admin)).toMatchObject({
@@ -113,7 +106,7 @@ describe("결과 조회", () => {
   });
 
   it("마감된 투표의 결과는 누구나 본다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
     await castVote(poll.id, poll.options[0].id, participant().participantId!);
     await closePoll(admin, poll.id);
 
@@ -126,7 +119,7 @@ describe("결과 조회", () => {
   });
 
   it("선택지마다 표 수와 반올림한 정수 비율을 표시 순서대로 담는다", async () => {
-    const poll = await pollWith(["김밥", "라면", "우동"]);
+    const poll = await createOpenPoll(["김밥", "라면", "우동"]);
     for (const option of [poll.options[0], poll.options[0], poll.options[1]]) {
       await castVote(poll.id, option.id, participant().participantId!);
     }
@@ -141,7 +134,7 @@ describe("결과 조회", () => {
   });
 
   it("표가 없으면 모든 비율이 0이다", async () => {
-    const poll = await pollWith(["김밥", "라면"]);
+    const poll = await createOpenPoll(["김밥", "라면"]);
 
     const results = await getResults(poll.id, admin);
 

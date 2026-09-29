@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { revalidatePollPages } from "@/app/revalidate-poll-pages";
 import { participantIdForVote, rememberParticipant } from "@/lib/participant";
 import { castVote } from "@/lib/polls";
 import type { VoteNotice } from "./notices";
@@ -13,8 +13,7 @@ export async function castVoteAction(pollId: string, formData: FormData) {
 
   const outcome = await castVote(pollId, optionId, participantId);
   if (outcome === "ok" && isNew) await rememberParticipant(participantId);
-  revalidatePath("/");
-  revalidatePath(`/polls/${pollId}`);
+  revalidatePollPages(pollId);
 
   // not_found는 투표 화면에서 404가 된다.
   if (outcome === "ok" || outcome === "not_found") redirect(`/polls/${pollId}`);

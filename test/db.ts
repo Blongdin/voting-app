@@ -1,9 +1,22 @@
 import { randomUUID } from "node:crypto";
 import { sql } from "@/lib/db";
+import { createPoll, getPoll, type Poll } from "@/lib/polls";
 
 // 테스트마다 테스트 DB를 비운다.
 export async function resetDb() {
   await sql()`TRUNCATE polls, options, votes CASCADE`;
+}
+
+/** 운영자가 만든 진행 중 투표를 공개 인터페이스로 준비한다. */
+export async function createOpenPoll(
+  optionLabels: string[] = ["김밥", "라면"],
+  question = "점심 뭐 먹을까요?",
+): Promise<Poll> {
+  const created = await createPoll({ isAdmin: true }, question, optionLabels);
+  if (!created.ok) throw new Error("테스트 준비: 투표 만들기 실패");
+  const poll = await getPoll(created.pollId);
+  if (!poll) throw new Error("테스트 준비: 투표 조회 실패");
+  return poll;
 }
 
 type PollSeed = {
