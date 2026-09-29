@@ -112,6 +112,16 @@ export async function closePoll(actor: Actor, pollId: string): Promise<ClosePoll
   return poll ? { ok: true } : { ok: false, reason: "not_found" };
 }
 
+export type DeletePollResult = { ok: true } | { ok: false; reason: "forbidden" | "not_found" };
+
+/** 투표를 완전히 삭제한다. 선택지와 표는 DB의 연쇄 삭제(ON DELETE CASCADE)로 함께 지워진다. */
+export async function deletePoll(actor: Actor, pollId: string): Promise<DeletePollResult> {
+  if (!actor.isAdmin) return { ok: false, reason: "forbidden" };
+  if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
+  const [poll] = await sql()`DELETE FROM polls WHERE id = ${pollId} RETURNING id`;
+  return poll ? { ok: true } : { ok: false, reason: "not_found" };
+}
+
 export type CastVoteResult = "ok" | "already_voted" | "closed" | "invalid_option" | "not_found";
 
 export async function castVote(

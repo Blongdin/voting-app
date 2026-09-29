@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePollPages } from "@/app/revalidate-poll-pages";
 import { endAdminSession, requireAdmin, tryStartAdminSession } from "@/lib/admin-session";
 import type { PollInputErrors } from "@/lib/poll-rules";
-import { closePoll, createPoll } from "@/lib/polls";
+import { closePoll, createPoll, deletePoll } from "@/lib/polls";
 
 export type LoginState = { error?: string };
 
@@ -57,4 +57,14 @@ export async function closePollAction(pollId: string) {
     return;
   }
   revalidatePollPages(pollId);
+}
+
+export async function deletePollAction(pollId: string) {
+  const actor = await requireAdmin();
+  const result = await deletePoll(actor, pollId);
+  // requireAdmin을 통과했으므로 forbidden은 오지 않는다.
+  if (!result.ok && result.reason === "forbidden") redirect("/admin/login");
+  // 삭제했거나 이미 없는 투표면, 사라진 투표의 화면 대신 운영자 목록으로 돌아간다.
+  revalidatePollPages(pollId);
+  redirect("/admin");
 }
