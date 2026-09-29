@@ -2,7 +2,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+처음 한 번은 Git Bash에서 설정 위저드를 실행해 Neon 브랜치, 로컬 환경변수(`.env.local`, `.env.test.local`), Vercel 환경변수를 준비합니다:
+
+```bash
+./scripts/setup.sh
+```
+
+Then, run the development server:
 
 ```bash
 npm run dev
