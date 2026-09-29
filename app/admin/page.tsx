@@ -17,7 +17,7 @@ export default async function AdminPage() {
           </button>
         </form>
       </header>
-      <p className="text-zinc-500">투표 관리 기능은 다음 단계에서 추가됩니다.</p>
+      <p className="text-zinc-500">투표 만들기·마감·삭제는 다음 단계에서 추가됩니다.</p>
     </main>
   );
 }

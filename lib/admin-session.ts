@@ -5,7 +5,8 @@ import { createAdminAuth } from "@/lib/admin-auth";
 
 // 운영자 세션 쿠키를 읽고 쓰는 연결 코드. 판단은 lib/admin-auth.ts가 한다.
 
-const SESSION_COOKIE = "admin_session";
+// __Host- 접두사: Secure, Path=/, Domain 없음이 강제된다.
+const SESSION_COOKIE = "__Host-admin_session";
 
 function adminAuth() {
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -17,7 +18,7 @@ function adminAuth() {
 }
 
 /** 비밀번호가 맞으면 세션 쿠키를 발급하고 true를 돌려준다. Server Action에서만 호출한다. */
-export async function startAdminSession(password: string): Promise<boolean> {
+export async function tryStartAdminSession(password: string): Promise<boolean> {
   const result = adminAuth().login(password, new Date());
   if (!result.ok) return false;
   (await cookies()).set(SESSION_COOKIE, result.token, {
