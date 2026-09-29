@@ -118,12 +118,16 @@ export async function castVote(
   try {
     inserted = await db`
       INSERT INTO votes (poll_id, option_id, participant_id)
-      SELECT id, ${optionId}, ${participantId} FROM polls WHERE id = ${pollId} AND closed_at IS NULL
+      SELECT id, ${optionId}, ${participantId} FROM polls
+      WHERE id = ${pollId} AND closed_at IS NULL
+      FOR SHARE -- 마감(UPDATE)이 이 문장이 끝날 때까지 기다리게 한다
       ON CONFLICT (poll_id, participant_id) DO NOTHING
       RETURNING id`;
   } catch (error) {
-    if (isForeignKeyViolation(error)) return "invalid_option";
-    throw error;
+    if (!isForeignKeyViolation(error)) throw error;
+    // 선택지가 이 투표에 속하지 않거나, 그 사이 투표가 삭제되었다.
+    const [stillExists] = await db`SELECT 1 FROM polls WHERE id = ${pollId}`;
+    return stillExists ? "invalid_option" : "not_found";
   }
   if (inserted.length > 0) return "ok";
 

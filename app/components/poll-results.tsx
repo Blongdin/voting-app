@@ -13,7 +13,7 @@ export function PollResultsView({ results }: { results: PollResults }) {
                   {option.label}
                   {mine && (
                     <span className="ml-2 rounded bg-sky-100 px-1.5 py-0.5 text-xs text-sky-800 dark:bg-sky-900 dark:text-sky-100">
-                      내 선택
+                      내 표
                     </span>
                   )}
                 </span>

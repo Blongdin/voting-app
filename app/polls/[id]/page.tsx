@@ -2,15 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PollResultsView } from "@/app/components/poll-results";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
-import { participantViewer } from "@/lib/participant";
+import { participantActor } from "@/lib/participant";
 import { getPoll, getResults, type Poll } from "@/lib/polls";
 import { castVoteAction } from "./actions";
-
-const notices: Record<string, string> = {
-  already_voted: "이미 참여한 투표입니다.",
-  closed: "마감된 투표입니다.",
-  invalid_option: "표를 낼 수 없었습니다. 선택지를 다시 골라 주세요.",
-};
+import { voteNoticeMessage } from "./notices";
 
 export default async function PollPage({ params, searchParams }: PageProps<"/polls/[id]">) {
   const { id } = await params;
@@ -19,8 +14,8 @@ export default async function PollPage({ params, searchParams }: PageProps<"/pol
   if (!poll) notFound();
 
   // 진행 중이고 아직 표를 내지 않은 참여자에게는 결과 대신 투표 양식을 보여 준다.
-  const results = await getResults(poll.id, await participantViewer());
-  const message = typeof notice === "string" ? notices[notice] : undefined;
+  const results = await getResults(poll.id, await participantActor());
+  const message = voteNoticeMessage(notice, results.ok);
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
