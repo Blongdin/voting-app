@@ -29,7 +29,7 @@ export default async function AdminPage() {
 
       <section>
         <h2 className="mb-4 text-lg font-semibold">모든 투표</h2>
-        <PollList polls={polls} />
+        <PollList polls={polls} hrefBase="/admin/polls" />
       </section>
     </main>
   );

@@ -77,10 +77,14 @@ export async function createPoll(
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// URL과 폼에서 온 ID이므로 UUID가 아니면 DB에 묻지 않는다.
+export const isUuid = (value: string) => UUID.test(value);
+
+const isForeignKeyViolation = (error: unknown) =>
+  typeof error === "object" && error !== null && "code" in error && error.code === "23503";
 
 export async function getPoll(pollId: string): Promise<Poll | null> {
-  // URL에서 온 값이므로 UUID가 아니면 DB에 묻지 않고 없음으로 본다.
-  if (!UUID.test(pollId)) return null;
+  if (!isUuid(pollId)) return null;
   const db = sql();
   const [poll] = await db`
     SELECT id, question, closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
@@ -92,6 +96,96 @@ export async function getPoll(pollId: string): Promise<Poll | null> {
     question: poll.question,
     status: poll.closed ? "closed" : "open",
     options: options.map((o) => ({ id: o.id, label: o.label })),
+  };
+}
+
+export type CastVoteResult = "ok" | "already_voted" | "closed" | "invalid_option" | "not_found";
+
+export async function castVote(
+  pollId: string,
+  optionId: string,
+  participantId: string,
+): Promise<CastVoteResult> {
+  if (!isUuid(pollId)) return "not_found";
+  if (!isUuid(optionId)) return "invalid_option";
+  if (!isUuid(participantId)) throw new Error("참여자 ID는 UUID여야 합니다.");
+
+  const db = sql();
+  // 마감 여부는 표를 넣는 같은 문장에서 확인한다(ADR-0004).
+  // 한 사람당 한 표는 UNIQUE(poll_id, participant_id)가,
+  // 선택지가 이 투표에 속하는지는 votes의 복합 외래키가 보장한다.
+  let inserted;
+  try {
+    inserted = await db`
+      INSERT INTO votes (poll_id, option_id, participant_id)
+      SELECT id, ${optionId}, ${participantId} FROM polls WHERE id = ${pollId} AND closed_at IS NULL
+      ON CONFLICT (poll_id, participant_id) DO NOTHING
+      RETURNING id`;
+  } catch (error) {
+    if (isForeignKeyViolation(error)) return "invalid_option";
+    throw error;
+  }
+  if (inserted.length > 0) return "ok";
+
+  // 들어가지 않았다면 이유만 알아낸다. 규칙 자체는 위 문장이 이미 지켰다.
+  const [poll] = await db`SELECT closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
+  if (!poll) return "not_found";
+  if (poll.closed) return "closed";
+  return "already_voted";
+}
+
+export type OptionResult = { id: string; label: string; votes: number; percent: number };
+
+export type PollResults = {
+  status: PollStatus;
+  totalVotes: number;
+  options: OptionResult[];
+  /** 보는 참여자가 고른 선택지. 표를 내지 않았으면 null. */
+  myOptionId: string | null;
+};
+
+export type GetResultsResult =
+  | { ok: true; results: PollResults }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function getResults(pollId: string, viewer: Actor): Promise<GetResultsResult> {
+  if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
+  const db = sql();
+  const [poll] = await db`SELECT closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
+  if (!poll) return { ok: false, reason: "not_found" };
+
+  // 쿠키에서 온 참여자 ID이므로 UUID가 아니면 표를 내지 않은 사람으로 본다.
+  const participantId = viewer.participantId;
+  const [mine] =
+    participantId && isUuid(participantId)
+      ? await db`
+          SELECT option_id FROM votes WHERE poll_id = ${pollId} AND participant_id = ${participantId}`
+      : [];
+  // 결과는 표를 낸 참여자, 마감된 투표를 보는 누구나, 운영자만 본다.
+  if (!mine && !poll.closed && !viewer.isAdmin) return { ok: false, reason: "forbidden" };
+
+  const options = await db`
+    SELECT o.id, o.label, count(v.id)::int AS votes
+    FROM options o
+    LEFT JOIN votes v ON v.option_id = o.id
+    WHERE o.poll_id = ${pollId}
+    GROUP BY o.id
+    ORDER BY o.position`;
+  const totalVotes = options.reduce((sum, o) => sum + o.votes, 0);
+  return {
+    ok: true,
+    results: {
+      status: poll.closed ? "closed" : "open",
+      totalVotes,
+      options: options.map((o) => ({
+        id: o.id,
+        label: o.label,
+        votes: o.votes,
+        // 반올림하므로 합이 100이 아닐 수 있다(스펙에서 허용).
+        percent: totalVotes === 0 ? 0 : Math.round((o.votes * 100) / totalVotes),
+      })),
+      myOptionId: mine?.option_id ?? null,
+    },
   };
 }
 

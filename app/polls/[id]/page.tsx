@@ -1,12 +1,26 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PollResultsView } from "@/app/components/poll-results";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
-import { getPoll } from "@/lib/polls";
+import { participantViewer } from "@/lib/participant";
+import { getPoll, getResults, type Poll } from "@/lib/polls";
+import { castVoteAction } from "./actions";
 
-export default async function PollPage({ params }: PageProps<"/polls/[id]">) {
+const notices: Record<string, string> = {
+  already_voted: "이미 참여한 투표입니다.",
+  closed: "마감된 투표입니다.",
+  invalid_option: "표를 낼 수 없었습니다. 선택지를 다시 골라 주세요.",
+};
+
+export default async function PollPage({ params, searchParams }: PageProps<"/polls/[id]">) {
   const { id } = await params;
+  const { notice } = await searchParams;
   const poll = await getPoll(id);
   if (!poll) notFound();
+
+  // 진행 중이고 아직 표를 내지 않은 참여자에게는 결과 대신 투표 양식을 보여 준다.
+  const results = await getResults(poll.id, await participantViewer());
+  const message = typeof notice === "string" ? notices[notice] : undefined;
 
   return (
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-12">
@@ -17,16 +31,41 @@ export default async function PollPage({ params }: PageProps<"/polls/[id]">) {
         <h1 className="text-2xl font-bold">{poll.question}</h1>
         <PollStatusBadge status={poll.status} />
       </header>
-      <ul className="flex flex-col gap-2">
-        {poll.options.map((option) => (
-          <li
-            key={option.id}
-            className="rounded-lg border border-zinc-200 px-4 py-3 dark:border-zinc-800"
-          >
-            {option.label}
-          </li>
-        ))}
-      </ul>
+      {message && (
+        <p
+          role="status"
+          className="mb-6 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100"
+        >
+          {message}
+        </p>
+      )}
+      {results.ok ? <PollResultsView results={results.results} /> : <VoteForm poll={poll} />}
     </main>
+  );
+}
+
+function VoteForm({ poll }: { poll: Poll }) {
+  return (
+    <form action={castVoteAction.bind(null, poll.id)} className="flex flex-col gap-4">
+      <fieldset className="flex flex-col gap-2">
+        <legend className="sr-only">선택지</legend>
+        {poll.options.map((option) => (
+          <label
+            key={option.id}
+            className="flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-200 px-4 py-3 has-[:checked]:border-zinc-900 dark:border-zinc-800 dark:has-[:checked]:border-zinc-100"
+          >
+            <input type="radio" name="optionId" value={option.id} required />
+            {option.label}
+          </label>
+        ))}
+      </fieldset>
+      <p className="text-sm text-zinc-500">낸 표는 바꿀 수 없습니다.</p>
+      <button
+        type="submit"
+        className="self-start rounded-lg bg-zinc-900 px-4 py-2 font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
+      >
+        표 내기
+      </button>
+    </form>
   );
 }

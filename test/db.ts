@@ -6,6 +6,11 @@ export async function resetDb() {
   await sql()`TRUNCATE polls, options, votes CASCADE`;
 }
 
+// 투표 마감 인터페이스(티켓 06)가 생기기 전까지 쓰는 준비용 헬퍼.
+export async function markClosed(pollId: string) {
+  await sql()`UPDATE polls SET closed_at = now() WHERE id = ${pollId}`;
+}
+
 type PollSeed = {
   question: string;
   createdAt: Date;
