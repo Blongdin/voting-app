@@ -7,7 +7,9 @@ import type { Actor } from "@/lib/polls";
 // 운영자 세션 쿠키를 읽고 쓰는 연결 코드. 판단은 lib/admin-auth.ts가 한다.
 
 // __Host- 접두사: Secure, Path=/, Domain 없음이 강제된다.
+// 지울 때도 같은 속성이 있어야 브라우저가 받아들인다(없으면 InvalidPrefix로 거부해 로그아웃이 안 된다).
 const SESSION_COOKIE = "__Host-admin_session";
+const SESSION_COOKIE_OPTIONS = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as const;
 
 function adminAuth() {
   const adminPassword = process.env.ADMIN_PASSWORD;
@@ -23,17 +25,14 @@ export async function tryStartAdminSession(password: string): Promise<boolean> {
   const result = adminAuth().login(password, new Date());
   if (!result.ok) return false;
   (await cookies()).set(SESSION_COOKIE, result.token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "lax",
-    path: "/",
+    ...SESSION_COOKIE_OPTIONS,
     expires: result.expiresAt,
   });
   return true;
 }
 
 export async function endAdminSession() {
-  (await cookies()).delete(SESSION_COOKIE);
+  (await cookies()).set(SESSION_COOKIE, "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
 }
 
 /** 현재 요청이 운영자의 것인지. */

@@ -19,7 +19,8 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 // 로그아웃은 자기 쿠키만 지우므로 운영자 확인(requireAdmin)이 필요 없는 유일한 예외다.
 export async function logout() {
   await endAdminSession();
-  redirect("/admin/login");
+  // 로그아웃하면 참여자로서 홈으로 돌아간다.
+  redirect("/");
 }
 
 export type CreatePollState = {
