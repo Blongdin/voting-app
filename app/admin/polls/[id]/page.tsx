@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { closePollAction, deletePollAction } from "@/app/admin/actions";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
+import { formatDeadline } from "@/lib/format";
 import { requireAdmin } from "@/lib/admin-session";
 import { resultsViewer } from "@/lib/participant";
 import { getPoll, getResults } from "@/lib/polls";
@@ -25,6 +26,9 @@ export default async function AdminPollPage({ params }: PageProps<"/admin/polls/
         <h1 className="text-2xl font-bold">{poll.question}</h1>
         <PollStatusBadge status={poll.status} />
       </header>
+      {poll.status === "open" && poll.closesAt && (
+        <p className="-mt-4 mb-6 text-sm text-zinc-500">{formatDeadline(poll.closesAt)}</p>
+      )}
       <AdminPollPanel
         pollId={poll.id}
         initial={results.results}

@@ -5,6 +5,7 @@ import {
   MIN_OPTIONS,
   OPTION_MAX_LENGTH,
   QUESTION_MAX_LENGTH,
+  type ClosesAtError,
   type OptionsError,
   type PollInputErrors,
   type QuestionError,
@@ -21,6 +22,8 @@ export type Poll = {
   id: string;
   question: string;
   status: PollStatus;
+  /** 스스로 마감되는 시각(ADR-0005). 없으면 운영자가 마감할 때까지 진행 중이다. */
+  closesAt: Date | null;
   options: PollOption[];
 };
 
@@ -46,10 +49,17 @@ function optionsError(labels: string[]): OptionsError | undefined {
   if (new Set(labels).size !== labels.length) return "duplicate";
 }
 
+function closesAtError(closesAt: Date | null): ClosesAtError | undefined {
+  if (closesAt === null) return undefined;
+  if (Number.isNaN(closesAt.getTime())) return "invalid";
+  if (closesAt.getTime() <= Date.now()) return "past";
+}
+
 export async function createPoll(
   actor: Actor,
   rawQuestion: string,
   rawOptionLabels: string[],
+  closesAt: Date | null = null,
 ): Promise<CreatePollResult> {
   if (!actor.isAdmin) return { ok: false, reason: "forbidden" };
 
@@ -57,10 +67,12 @@ export async function createPoll(
   const optionLabels = rawOptionLabels.map((label) => label.trim());
   const questionProblem = questionError(question);
   const optionsProblem = optionsError(optionLabels);
-  if (questionProblem || optionsProblem) {
+  const closesAtProblem = closesAtError(closesAt);
+  if (questionProblem || optionsProblem || closesAtProblem) {
     const errors: PollInputErrors = {};
     if (questionProblem) errors.question = questionProblem;
     if (optionsProblem) errors.options = optionsProblem;
+    if (closesAtProblem) errors.closesAt = closesAtProblem;
     return { ok: false, reason: "invalid", errors };
   }
 
@@ -68,7 +80,7 @@ export async function createPoll(
   const pollId = randomUUID();
   // 투표와 선택지를 한 트랜잭션으로 만든다.
   await db.transaction([
-    db`INSERT INTO polls (id, question) VALUES (${pollId}, ${question})`,
+    db`INSERT INTO polls (id, question, closes_at) VALUES (${pollId}, ${question}, ${closesAt})`,
     db`INSERT INTO options (poll_id, label, position)
       SELECT ${pollId}, label, ordinality - 1
       FROM unnest(${optionLabels}::text[]) WITH ORDINALITY AS t(label, ordinality)`,
@@ -87,7 +99,7 @@ export async function getPoll(pollId: string): Promise<Poll | null> {
   if (!isUuid(pollId)) return null;
   const db = sql();
   const [poll] = await db`
-    SELECT id, question, closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
+    SELECT id, question, is_closed(closed_at, closes_at) AS closed, closes_at FROM polls WHERE id = ${pollId}`;
   if (!poll) return null;
   const options = await db`
     SELECT id, label FROM options WHERE poll_id = ${pollId} ORDER BY position`;
@@ -95,6 +107,7 @@ export async function getPoll(pollId: string): Promise<Poll | null> {
     id: poll.id,
     question: poll.question,
     status: poll.closed ? "closed" : "open",
+    closesAt: poll.closes_at ? new Date(poll.closes_at) : null,
     options: options.map((o) => ({ id: o.id, label: o.label })),
   };
 }
@@ -133,7 +146,7 @@ export async function castVote(
   if (!isUuid(participantId)) throw new Error("참여자 ID는 UUID여야 합니다.");
 
   const db = sql();
-  // 마감 여부는 표를 넣는 같은 문장에서 확인한다(ADR-0004).
+  // 마감 여부는 표를 넣는 같은 문장에서 is_closed로 확인한다(ADR-0004, ADR-0005).
   // 한 사람당 한 표는 UNIQUE(poll_id, participant_id)가,
   // 선택지가 이 투표에 속하는지는 votes의 복합 외래키가 보장한다.
   let inserted;
@@ -141,7 +154,7 @@ export async function castVote(
     inserted = await db`
       INSERT INTO votes (poll_id, option_id, participant_id)
       SELECT id, ${optionId}, ${participantId} FROM polls
-      WHERE id = ${pollId} AND closed_at IS NULL
+      WHERE id = ${pollId} AND NOT is_closed(closed_at, closes_at)
       FOR SHARE -- 마감(UPDATE)이 이 문장이 끝날 때까지 기다리게 한다
       ON CONFLICT (poll_id, participant_id) DO NOTHING
       RETURNING id`;
@@ -154,7 +167,7 @@ export async function castVote(
   if (inserted.length > 0) return "ok";
 
   // 들어가지 않았다면 이유만 알아낸다. 규칙 자체는 위 문장이 이미 지켰다.
-  const [poll] = await db`SELECT closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
+  const [poll] = await db`SELECT is_closed(closed_at, closes_at) AS closed FROM polls WHERE id = ${pollId}`;
   if (!poll) return "not_found";
   if (poll.closed) return "closed";
   return "already_voted";
@@ -177,7 +190,7 @@ export type GetResultsResult =
 export async function getResults(pollId: string, viewer: Actor): Promise<GetResultsResult> {
   if (!isUuid(pollId)) return { ok: false, reason: "not_found" };
   const db = sql();
-  const [poll] = await db`SELECT closed_at IS NOT NULL AS closed FROM polls WHERE id = ${pollId}`;
+  const [poll] = await db`SELECT is_closed(closed_at, closes_at) AS closed FROM polls WHERE id = ${pollId}`;
   if (!poll) return { ok: false, reason: "not_found" };
 
   // 쿠키에서 온 참여자 ID이므로 UUID가 아니면 표를 내지 않은 사람으로 본다.
@@ -219,12 +232,14 @@ export type PollSummary = {
   id: string;
   question: string;
   status: PollStatus;
+  closesAt: Date | null;
   totalVotes: number;
 };
 
 export async function listPolls(): Promise<PollSummary[]> {
   const rows = await sql()`
-    SELECT p.id, p.question, p.closed_at IS NOT NULL AS closed, count(v.id)::int AS total_votes
+    SELECT p.id, p.question, is_closed(p.closed_at, p.closes_at) AS closed, p.closes_at,
+      count(v.id)::int AS total_votes
     FROM polls p
     LEFT JOIN votes v ON v.poll_id = p.id
     GROUP BY p.id
@@ -233,6 +248,7 @@ export async function listPolls(): Promise<PollSummary[]> {
     id: row.id,
     question: row.question,
     status: row.closed ? "closed" : "open",
+    closesAt: row.closes_at ? new Date(row.closes_at) : null,
     totalVotes: row.total_votes,
   }));
 }

@@ -31,3 +31,15 @@ CREATE TABLE IF NOT EXISTS votes (
 );
 
 CREATE INDEX IF NOT EXISTS votes_option_id_idx ON votes (option_id);
+
+-- 티켓 08: 마감 시각(ADR-0005). NULL이면 운영자가 직접 마감할 때까지 진행 중.
+ALTER TABLE polls ADD COLUMN IF NOT EXISTS closes_at timestamptz;
+
+-- 마감 여부의 유일한 판단: 운영자가 닫았거나 마감 시각이 지났다.
+CREATE OR REPLACE FUNCTION is_closed(closed_at timestamptz, closes_at timestamptz)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT closed_at IS NOT NULL OR COALESCE(closes_at <= now(), false)
+$$;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatDeadline } from "@/lib/format";
 import type { PollSummary } from "@/lib/polls";
 import { PollStatusBadge } from "./poll-status-badge";
 
@@ -21,8 +22,13 @@ export function PollList({
             href={`${hrefBase}/${poll.id}`}
             className="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
           >
-            <span className={poll.status === "closed" ? "text-zinc-500" : "font-medium"}>
-              {poll.question}
+            <span className="flex flex-col">
+              <span className={poll.status === "closed" ? "text-zinc-500" : "font-medium"}>
+                {poll.question}
+              </span>
+              {poll.status === "open" && poll.closesAt && (
+                <span className="text-xs text-zinc-500">{formatDeadline(poll.closesAt)}</span>
+              )}
             </span>
             <span className="flex shrink-0 items-center gap-3 text-sm text-zinc-500">
               <span>{poll.totalVotes}표</span>

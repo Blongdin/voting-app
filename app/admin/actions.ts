@@ -25,7 +25,7 @@ export async function logout() {
 export type CreatePollState = {
   errors?: PollInputErrors;
   /** 검증 실패 시 입력을 되살리기 위해 제출한 값을 돌려준다. */
-  values?: { question: string; options: string[] };
+  values?: { question: string; options: string[]; closesAtLocal: string };
   createdPollId?: string;
 };
 
@@ -36,12 +36,16 @@ export async function createPollAction(
   const actor = await requireAdmin();
   const question = String(formData.get("question") ?? "");
   const options = formData.getAll("option").map(String);
+  // 폼은 운영자 기기의 현지 시각(closesAtLocal)을 UTC ISO 문자열(closesAt)로 바꿔 보낸다.
+  const closesAtIso = String(formData.get("closesAt") ?? "");
+  const closesAtLocal = String(formData.get("closesAtLocal") ?? "");
+  const closesAt = closesAtIso ? new Date(closesAtIso) : null;
 
   // 도메인 모듈도 운영자인지 다시 확인한다. requireAdmin을 통과했으므로 forbidden은 오지 않는다.
-  const result = await createPoll(actor, question, options);
+  const result = await createPoll(actor, question, options, closesAt);
   if (!result.ok) {
     if (result.reason === "forbidden") redirect("/admin/login");
-    return { errors: result.errors, values: { question, options } };
+    return { errors: result.errors, values: { question, options, closesAtLocal } };
   }
   revalidatePollPages();
   return { createdPollId: result.pollId };

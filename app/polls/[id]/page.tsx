@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LivePollResults } from "@/app/components/live-poll-results";
 import { PollStatusBadge } from "@/app/components/poll-status-badge";
+import { formatDeadline } from "@/lib/format";
 import { participantActor } from "@/lib/participant";
 import { getPoll, getResults, type Poll } from "@/lib/polls";
 import { castVoteAction } from "./actions";
@@ -26,6 +27,9 @@ export default async function PollPage({ params, searchParams }: PageProps<"/pol
         <h1 className="text-2xl font-bold">{poll.question}</h1>
         <PollStatusBadge status={poll.status} />
       </header>
+      {poll.status === "open" && poll.closesAt && (
+        <p className="-mt-4 mb-6 text-sm text-zinc-500">{formatDeadline(poll.closesAt)}</p>
+      )}
       {message && (
         <p
           role="status"

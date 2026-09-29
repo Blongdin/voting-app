@@ -7,4 +7,9 @@ export const MAX_OPTIONS = 10;
 
 export type QuestionError = "required" | "too_long";
 export type OptionsError = "too_few" | "too_many" | "empty" | "too_long" | "duplicate";
-export type PollInputErrors = { question?: QuestionError; options?: OptionsError };
+export type ClosesAtError = "past" | "invalid";
+export type PollInputErrors = {
+  question?: QuestionError;
+  options?: OptionsError;
+  closesAt?: ClosesAtError;
+};

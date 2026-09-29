@@ -8,6 +8,7 @@ import {
   MIN_OPTIONS,
   OPTION_MAX_LENGTH,
   QUESTION_MAX_LENGTH,
+  type ClosesAtError,
   type OptionsError,
   type QuestionError,
 } from "@/lib/poll-rules";
@@ -24,6 +25,18 @@ const optionsMessages: Record<OptionsError, string> = {
   too_long: `선택지는 ${OPTION_MAX_LENGTH}자까지 쓸 수 있습니다.`,
   duplicate: "같은 선택지가 두 번 들어 있습니다.",
 };
+
+const closesAtMessages: Record<ClosesAtError, string> = {
+  past: "마감 시각은 지금보다 뒤여야 합니다.",
+  invalid: "마감 시각을 다시 입력하세요.",
+};
+
+/** datetime-local 값(현지 시각, 시간대 없음)을 UTC ISO 문자열로. 비었거나 틀리면 "". */
+function localToIso(local: string): string {
+  if (!local) return "";
+  const date = new Date(local); // 시간대가 없는 날짜·시간은 브라우저 현지 시각으로 해석된다
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
 
 const initialState: CreatePollState = {};
 
@@ -62,6 +75,7 @@ function PollFields({
     setNextKey((key) => key + 1);
   };
   const removeOption = (key: number) => setOptionKeys((keys) => keys.filter((k) => k !== key));
+  const [closesAtLocal, setClosesAtLocal] = useState(state.values?.closesAtLocal ?? "");
 
   const inputClass =
     "w-full rounded-lg border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900";
@@ -124,6 +138,26 @@ function PollFields({
           </p>
         )}
       </fieldset>
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="closesAtLocal" className="text-sm font-medium">
+          마감 시각 <span className="font-normal text-zinc-500">(선택, 비우면 직접 마감)</span>
+        </label>
+        <input
+          id="closesAtLocal"
+          name="closesAtLocal"
+          type="datetime-local"
+          value={closesAtLocal}
+          onChange={(event) => setClosesAtLocal(event.target.value)}
+          className={`${inputClass} sm:w-auto`}
+        />
+        <input type="hidden" name="closesAt" value={localToIso(closesAtLocal)} />
+        {state.errors?.closesAt && (
+          <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {closesAtMessages[state.errors.closesAt]}
+          </p>
+        )}
+      </div>
 
       <button
         type="submit"

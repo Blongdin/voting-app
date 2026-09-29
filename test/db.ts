@@ -16,6 +16,14 @@ export async function rowsBelongingTo(pollId: string) {
   return { options: row.options as number, votes: row.votes as number };
 }
 
+/**
+ * 마감 시각이 지난 상황을 만든다. 만들기는 지난 시각을 받지 않고(검증),
+ * 테스트가 실제로 기다리면 느려지므로 준비 단계에서만 SQL로 시각을 옮긴다.
+ */
+export async function moveDeadlineToPast(pollId: string) {
+  await sql()`UPDATE polls SET closes_at = now() - interval '1 second' WHERE id = ${pollId}`;
+}
+
 /** 운영자가 만든 진행 중 투표를 공개 인터페이스로 준비한다. */
 export async function createOpenPoll(
   optionLabels: string[] = ["김밥", "라면"],
