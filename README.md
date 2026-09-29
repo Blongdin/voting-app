@@ -8,6 +8,14 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ./scripts/setup.sh
 ```
 
+DB 스키마(`db/schema.sql`)는 여러 번 실행해도 안전합니다:
+
+```bash
+npm run db:migrate                                   # dev 브랜치(.env.local)
+DATABASE_URL='<main 브랜치 연결 문자열>' npm run db:migrate   # 운영 브랜치
+npm test                                             # test 브랜치(.env.test.local), 테이블을 비움
+```
+
 Then, run the development server:
 
 ```bash

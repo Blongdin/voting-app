@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "투표",
-  description: "질문 하나, 선택지 하나를 골라 투표하세요.",
+  description: "선택지 하나를 골라 표를 내고 결과를 확인하세요.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

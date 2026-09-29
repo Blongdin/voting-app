@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { connection } from "next/server";
-import { listPolls, type PollSummary } from "@/lib/polls";
+import { listPolls, type PollStatus, type PollSummary } from "@/lib/polls";
 
 export default async function Home() {
   // 목록은 요청마다 DB에서 읽는다(빌드 시점에 굳히지 않는다).
@@ -23,26 +23,31 @@ export default async function Home() {
   );
 }
 
+const statusStyle: Record<PollStatus, { question: string; badge: string; label: string }> = {
+  open: {
+    question: "font-medium",
+    badge: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100",
+    label: "진행 중",
+  },
+  closed: {
+    question: "text-zinc-500",
+    badge: "bg-zinc-100 dark:bg-zinc-800",
+    label: "마감",
+  },
+};
+
 function PollListItem({ poll }: { poll: PollSummary }) {
-  const closed = poll.status === "closed";
+  const style = statusStyle[poll.status];
   return (
     <li>
       <Link
         href={`/polls/${poll.id}`}
         className="flex items-center justify-between gap-4 rounded-lg border border-zinc-200 p-4 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
       >
-        <span className={closed ? "text-zinc-500" : "font-medium"}>{poll.question}</span>
+        <span className={style.question}>{poll.question}</span>
         <span className="flex shrink-0 items-center gap-3 text-sm text-zinc-500">
           <span>{poll.totalVotes}표</span>
-          <span
-            className={
-              closed
-                ? "rounded bg-zinc-100 px-2 py-0.5 dark:bg-zinc-800"
-                : "rounded bg-emerald-100 px-2 py-0.5 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100"
-            }
-          >
-            {closed ? "마감" : "진행 중"}
-          </span>
+          <span className={`rounded px-2 py-0.5 ${style.badge}`}>{style.label}</span>
         </span>
       </Link>
     </li>

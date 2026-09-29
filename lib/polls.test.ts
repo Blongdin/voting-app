@@ -37,8 +37,8 @@ describe("투표 목록 조회", () => {
     await seedPoll({
       question: "점심 메뉴",
       createdAt: new Date("2026-02-01"),
-      options: ["김밥", "라면", "우동"],
-      votes: [0, 0, 1],
+      optionLabels: ["김밥", "라면", "우동"],
+      voteOptionIndexes: [0, 0, 1],
     });
     await seedPoll({ question: "표가 없는 투표", createdAt: new Date("2026-01-01") });
 
